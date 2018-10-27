@@ -19,29 +19,20 @@ argparser.add_argument("--title", "-t", nargs='?', default=os.environ("QUTE_TITL
 argparser.add_argument("--content", "-c", nargs='*', default=os.environ("QUTE_URL"))
 argparser.add_argument("--org-file", "-f", default=ORG_FILE)
 argparser.add_argument("--heading", "-d", default=HEADING)
-# create file if it does not exist
-# create heading if it does not exist
-# build node: level date content
-# append node
-# save file
-
-# also: import old bookmarks
 
 def qute_command(command):
+    """send commands to qutebrowser"""
     with open(os.environ['QUTE_FIFO'], 'w') as fifo:
         fifo.write(command + '\n')
         fifo.flush
 
 def dmenu(items, invocation):
+    """run dmenu"""
     command = shlex.split(invocation)
     process = subprocess.run(command,
                              input='\n'.join(items).encode("UTF-8"),
                              stdout=subprocess.PIPE)
     return process.stdout.decode("UTF-8").strip()
-
-def subheadings(org, heading):
-    """return a list of all headings under the given subheading"""
-
 
 def main(args):
     """Store given url in an org-mode file"""
