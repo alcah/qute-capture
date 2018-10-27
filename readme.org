@@ -18,9 +18,14 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
  - A complete interface to org-mode in Qutebrowser. My only use for this script is to unify bookmarks and my org lists.
 
 * Use & Installation
- - Place this script in the =~/.local/share/qutebrowser/userscripts= folder. - To create a new entry: =qute-org write=
+ - Place this script in the =~/.local/share/qutebrowser/userscripts= folder.
+- To create a new entry: =qute-org write=
  - To jump to an entry: =qute-org read=
  - Additional setting for org-file and subheading can be found within the script
 
 * Dependencies
  - PyOrgMode -- The current version in pip is broken, you'll need to get it from git.
+
+* Acknowledgements
+ - Qutebrowser, for being just about the only usable modern browser
+ - qute-pass, from which I shamelessly copied a chunk of code
