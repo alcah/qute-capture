@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+
+"""
+Store the given url in an org-mode file
+"""
+
+import PyOrgMode as pyorg
+import os.path
+import argparse
+import subprocess
+import shlex
+
+ORG_FILE = os.path.expanduser("~/read-later.org")
+HEADING = "Read Later"
+
+argparser = argparse.ArgumentParser(description=__doc__)
+argparser.add_argument("mode", nargs='?', choices=["write", "read"])
+argparser.add_argument("--title", "-t", nargs='?', default=os.environ("QUTE_TITLE"))
+argparser.add_argument("--content", "-c", nargs='*', default=os.environ("QUTE_URL"))
+argparser.add_argument("--org-file", "-f", default=ORG_FILE)
+argparser.add_argument("--heading", "-d", default=HEADING)
+# create file if it does not exist
+# create heading if it does not exist
+# build node: level date content
+# append node
+# save file
+
+# also: import old bookmarks
+
+def qute_command(command):
+    with open(os.environ['QUTE_FIFO'], 'w') as fifo:
+        fifo.write(command + '\n')
+        fifo.flush
+
+def dmenu(items, invocation):
+    command = shlex.split(invocation)
+    process = subprocess.run(command,
+                             input='\n'.join(items).encode("UTF-8"),
+                             stdout=subprocess.PIPE)
+    return process.stdout.decode("UTF-8").strip()
+
+def subheadings(org, heading):
+    """return a list of all headings under the given subheading"""
+
+
+def main(args):
+    """Store given url in an org-mode file"""
+    if not args.mode:
+        argparser.print_help()
+        return
+
+    org = pyorg.OrgDataStructure()
+    org.load_from_file(args.org_file);
+
+
+    if args.mode == "write":
+        newnode = pyorg.OrgNode.Element()
+        newnode.heading = args.title
+        newnode.level = 2
+        newnode.append_clean('\n'.join(args.content) + '\n')
+        for c in org.root.content:
+            if c.heading == args.heading:
+                c.append_clean(newnode)
+                break
+        org.save_to_file(args.org_file)
+
+    elif args.mode == "read":
+        for c in org.root.content:
+            if c.heading == args.heading:
+                entries = c.content
+                break
+        if entries:
+            items = ["{} {}".format(e.content[0].strip(),
+                                    e.heading.strip()) for e in entries]
+            selection = dmenu(items, "dmenu -l 15").split(' ')[0]
+
+            if os.getenv("QUTE_FIFO") and selection:
+                qute_command("open -t " + selection)
+            else:
+                print(selection)
+
+if __name__ == '__main__':
+    main(argparser.parse_args())
