@@ -9,16 +9,17 @@ import os.path
 import argparse
 import subprocess
 import shlex
+import sys
 
 ORG_FILE = os.path.expanduser("~/read-later.org")
-HEADING = "Read Later"
+HEADING_PATH = "cool/test/anime/babes"
 
 argparser = argparse.ArgumentParser(description=__doc__)
 argparser.add_argument("mode", nargs='?', choices=["write", "read"])
 argparser.add_argument("--title", "-t", nargs='?', default=os.environ["QUTE_TITLE"])
 argparser.add_argument("--content", "-c", nargs='?', default=os.environ["QUTE_URL"])
 argparser.add_argument("--org-file", "-f", default=ORG_FILE)
-argparser.add_argument("--heading", "-d", default=HEADING)
+argparser.add_argument("--heading", "-d", default=HEADING_PATH)
 
 def qute_command(command):
     """send commands to qutebrowser"""
@@ -34,29 +35,56 @@ def dmenu(items, invocation):
                              stdout=subprocess.PIPE)
     return process.stdout.decode("UTF-8").strip()
 
+def new_node(heading, level, content=None):
+    node = pyorg.OrgNode.Element()
+    node.heading = heading
+    node.level = level
+    if content:
+        node.append_clean(content)
+    return node
+
+def resolve_heading(org, headings):
+    """
+    return the node for the specified subheading from org
+    nested subheadings can be specified using / e.g. heading/subheading
+    create path if it doesn't exist
+    """
+    def subheading(org, heading):
+        """return the node for heading immediately below org's root"""
+        for c in org.content:
+            if c.heading == heading:
+                return c
+        return None
+
+    node = org
+    for h in headings.split('/'):
+        if subheading(node, h):
+            node = subheading(node, h)
+        else:
+            nnode = new_node(h, node.level + 1)
+            node.append_clean(nnode)
+            node = nnode
+    return node
+
 def main(args):
     """Store given url in an org-mode file"""
     if not args.mode:
         argparser.print_help()
-        return
+        return 1
 
     org = pyorg.OrgDataStructure()
     org.load_from_file(args.org_file);
 
-    for c in org.root.content:
-        if c.heading == args.heading:
-            node = c
-            break
+    node = resolve_heading(org.root, args.heading);
 
-    if node and args.mode == "write":
-        newnode = pyorg.OrgNode.Element()
-        newnode.heading = args.title
-        newnode.level = 2
-        newnode.append_clean(args.content + '\n')
+    if args.mode == "write":
+        newnode = new_node(args.title, node.level + 1, args.content + '\n')
         node.append_clean(newnode)
         org.save_to_file(args.org_file)
+        if os.getenv("QUTE_FIFO"):
+            qute_command("message-info \"captured " + args.title + "\"")
 
-    elif node and args.mode == "read":
+    elif args.mode == "read":
         if node.content:
             items = ["{} {}".format(e.content[0].strip(),
                                     e.heading.strip()) for e in node.content]
@@ -64,8 +92,10 @@ def main(args):
 
             if os.getenv("QUTE_FIFO") and selection:
                 qute_command("open -t " + selection)
-            else:
+            elif selection:
                 print(selection)
 
+    return 0
+
 if __name__ == '__main__':
-    main(argparser.parse_args())
+    sys.exit(main(argparser.parse_args()))
