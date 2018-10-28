@@ -12,7 +12,8 @@ import shlex
 import sys
 
 ORG_FILE = os.path.expanduser("~/read-later.org")
-HEADING_PATH = "cool/test/anime/babes"
+HEADING_PATH = "read-later"
+HEADING_SEPERATOR = '/'
 
 argparser = argparse.ArgumentParser(description=__doc__)
 argparser.add_argument("mode", nargs='?', choices=["write", "read"])
@@ -36,6 +37,7 @@ def dmenu(items, invocation):
     return process.stdout.decode("UTF-8").strip()
 
 def new_node(heading, level, content=None):
+    """Return a new orgnode"""
     node = pyorg.OrgNode.Element()
     node.heading = heading
     node.level = level
@@ -46,18 +48,18 @@ def new_node(heading, level, content=None):
 def resolve_heading(org, headings):
     """
     return the node for the specified subheading from org
-    nested subheadings can be specified using / e.g. heading/subheading
-    create path if it doesn't exist
+    nested subheadings can be specified using `/' e.g. heading/subheading
+    create any headings that don't exist
     """
     def subheading(org, heading):
-        """return the node for heading immediately below org's root"""
+        """return the node for heading immediately below org"""
         for c in org.content:
             if c.heading == heading:
                 return c
         return None
 
     node = org
-    for h in headings.split('/'):
+    for h in headings.split(HEADING_SEPERATOR):
         if subheading(node, h):
             node = subheading(node, h)
         else:
@@ -67,13 +69,21 @@ def resolve_heading(org, headings):
     return node
 
 def main(args):
-    """Store given url in an org-mode file"""
+    """
+    Store given url in an org-mode file
+    or interactively retrieve using dmenu
+    """
     if not args.mode:
         argparser.print_help()
         return 1
 
     org = pyorg.OrgDataStructure()
-    org.load_from_file(args.org_file);
+
+    try:
+        org.load_from_file(args.org_file);
+    except FileNotFoundError:
+        # If the file doesn't exist we begin with an empty org structure
+        pass
 
     node = resolve_heading(org.root, args.heading);
 
