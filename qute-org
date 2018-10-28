@@ -10,17 +10,19 @@ import argparse
 import subprocess
 import shlex
 import sys
+import re
 
 ORG_FILE = os.path.expanduser("~/read-later.org")
-HEADING_PATH = "read-later"
+HEADING_PATH = "Read Later"
 HEADING_SEPERATOR = '/'
 
 argparser = argparse.ArgumentParser(description=__doc__)
 argparser.add_argument("mode", nargs='?', choices=["write", "read"])
-argparser.add_argument("--title", "-t", nargs='?', default=os.environ["QUTE_TITLE"])
-argparser.add_argument("--content", "-c", nargs='?', default=os.environ["QUTE_URL"])
+argparser.add_argument("--title", "-t", nargs='?', default=os.getenv("QUTE_TITLE"))
+argparser.add_argument("--content", "-c", nargs='?', default=os.getenv("QUTE_URL"))
 argparser.add_argument("--org-file", "-f", default=ORG_FILE)
 argparser.add_argument("--heading", "-d", default=HEADING_PATH)
+argparser.add_argument("--re", "-r", nargs='?', default="")
 
 def qute_command(command):
     """send commands to qutebrowser"""
@@ -98,8 +100,13 @@ def main(args):
         if node.content:
             items = ["{} {}".format(e.content[0].strip(),
                                     e.heading.strip()) for e in node.content]
-            selection = dmenu(items, "dmenu -l 15").split(' ')[0]
 
+            # ideally we should be matching against every line in content
+            # - filter over node content, then convert into dmenu format
+            if args.re:
+                items = [i for i in items if re.match(args.re, i)]
+
+            selection = dmenu(items, "dmenu -l 15").split(' ')[0]
             if os.getenv("QUTE_FIFO") and selection:
                 qute_command("open -t " + selection)
             elif selection:
