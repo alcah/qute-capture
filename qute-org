@@ -19,10 +19,11 @@ HEADING_SEPERATOR = '/'
 TIME_FORMAT = "Captured <%Y-%m-%d %a>"
 # was this called by qutebrowser
 QUTE = os.getenv("QUTE_FIFO")
+DMENU = "dmenu -i -l 15"
 
 
 argparser = argparse.ArgumentParser(description=__doc__)
-argparser.add_argument("mode", nargs='?', choices=["write", "read"])
+argparser.add_argument("mode", nargs='?', choices=["write", "read", "rm"])
 argparser.add_argument("--title", "-t", nargs='?', default=os.getenv("QUTE_TITLE"))
 argparser.add_argument("--content", "-c", nargs='?', default=os.getenv("QUTE_URL"))
 argparser.add_argument("--org-file", "-f", default=ORG_FILE)
@@ -75,6 +76,26 @@ def resolve_heading(org, headings):
             node = nnode
     return node
 
+def node_select_dmenu(org, rexp):
+    """Return a node under org selected with dmenu"""
+    # Nodes -> text -> node
+    # we prepend the dmenu entry with an index back into the array
+    # arbitrarily large limit
+    n = (n for n in range(0, 10**10))
+    if org.content:
+        items = ["{}. {} {}".format(next(n),
+                                    e.content[0].strip(),
+                                    e.heading.strip()) for e in org.content]
+
+        # ideally we should be matching against the header
+        if rexp:
+            items = [i for i in items if re.match(rexp, i)]
+
+        selection = dmenu(items, DMENU).split(' ')[0]
+        if selection:
+            return org.content[int(selection.split('.')[0])]
+    return None
+
 def main(args):
     """
     Store given url in an org-mode file
@@ -105,19 +126,18 @@ def main(args):
             qute_command("message-info \"captured " + args.title + "\"")
 
     elif args.mode == "read":
-        if node.content:
-            items = ["{} {}".format(e.content[0].strip(),
-                                    e.heading.strip()) for e in node.content]
+        selection = node_select_dmenu(node, args.re)
+        if QUTE and selection:
+            qute_command("open -t " + selection.content[0].strip())
+        elif selection:
+            print(selection)
 
-            # ideally we should be matching against the hedaer
-            if args.re:
-                items = [i for i in items if re.match(args.re, i)]
-
-            selection = dmenu(items, "dmenu -l 15").split(' ')[0]
-            if QUTE and selection:
-                qute_command("open -t " + selection)
-            elif selection:
-                print(selection)
+    elif args.mode == "rm":
+        selection = node_select_dmenu(node, args.re)
+        node.content.remove(selection)
+        org.save_to_file(args.org_file)
+        if QUTE and selection:
+            qute_command("message-info \"removed: " + selection.heading + "\"")
 
     return 0
 

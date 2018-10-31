@@ -9,7 +9,7 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
  - Some cli capabilities
 
 * Planned
- - Delete entries from within Qutebrowser
+ - The current version is feature complete
 
 * Non-features
  - A complete interface to org-mode in Qutebrowser -- My only use for
@@ -25,6 +25,7 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
  - The default file+heading is =~/read-later.org+Read Later=
  - To create a new entry: =qute-org write=
  - To jump to an entry: =qute-org read=
+ - To delete an entry: =qute-org rm=
  - See the source for additional settings
 
 * Dependencies
