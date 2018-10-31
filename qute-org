@@ -11,10 +11,15 @@ import subprocess
 import shlex
 import sys
 import re
+import time
 
 ORG_FILE = os.path.expanduser("~/read-later.org")
 HEADING_PATH = "Read Later"
 HEADING_SEPERATOR = '/'
+TIME_FORMAT = "Captured <%Y-%m-%d %a>"
+# was this called by qutebrowser
+QUTE = os.getenv("QUTE_FIFO")
+
 
 argparser = argparse.ArgumentParser(description=__doc__)
 argparser.add_argument("mode", nargs='?', choices=["write", "read"])
@@ -91,9 +96,12 @@ def main(args):
 
     if args.mode == "write":
         newnode = new_node(args.title, node.level + 1, args.content + '\n')
+        newnode.append_clean(time.strftime(TIME_FORMAT) + '\n')
+        if QUTE:
+            newnode.append_clean(os.getenv("QUTE_SELECTED_TEXT") + '\n')
         node.append_clean(newnode)
         org.save_to_file(args.org_file)
-        if os.getenv("QUTE_FIFO"):
+        if QUTE:
             qute_command("message-info \"captured " + args.title + "\"")
 
     elif args.mode == "read":
@@ -101,13 +109,12 @@ def main(args):
             items = ["{} {}".format(e.content[0].strip(),
                                     e.heading.strip()) for e in node.content]
 
-            # ideally we should be matching against every line in content
-            # - filter over node content, then convert into dmenu format
+            # ideally we should be matching against the hedaer
             if args.re:
                 items = [i for i in items if re.match(args.re, i)]
 
             selection = dmenu(items, "dmenu -l 15").split(' ')[0]
-            if os.getenv("QUTE_FIFO") and selection:
+            if QUTE and selection:
                 qute_command("open -t " + selection)
             elif selection:
                 print(selection)

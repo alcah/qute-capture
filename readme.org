@@ -4,25 +4,32 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
 * Implemented
  - Insert plain entries with page title and url under an arbitrary heading
  - Select an existing entry using dmenu and jump to that page
- - Some extra cli capabilities
  - Basic regexp filtering -- Display only those entries which contain a URL
+ - Collect any selected text and the date visited
+ - Some cli capabilities
 
 * Planned
  - Delete entries from within Qutebrowser
- - Collect some additional information about the page such as the date accessed
 
 * Non-features
- - A complete interface to org-mode in Qutebrowser. My only use for
+ - A complete interface to org-mode in Qutebrowser -- My only use for
    this script is to unify bookmarks and my org lists.
+ - A complete parser for bookmarkish data -- Org is extremely free
+   form, this is a great strength, but it means that some imposed
+   structure must be accepted from non-interactive tools. Trying to
+   accommodate every possible format a user might desire is
+   impossible.
 
 * Use & Installation
  - Place this script in the =~/.local/share/qutebrowser/userscripts= folder.
+ - The default file+heading is =~/read-later.org+Read Later=
  - To create a new entry: =qute-org write=
  - To jump to an entry: =qute-org read=
- - Additional setting for org-file and subheading can be found within the script
+ - See the source for additional settings
 
 * Dependencies
- - PyOrgMode -- The current version in pip is broken, you'll need to get it from git.
+ - PyOrgMode -- I recommend getting it from github, rather than pip
+ - Dmenu
 
 * Acknowledgements
  - Qutebrowser, for being just about the only usable modern browser
