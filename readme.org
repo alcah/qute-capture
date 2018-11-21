@@ -1,4 +1,4 @@
-#+TITLE:qute-org
+#+TITLE:qute-capture
 Qutebrowser userscript for filing the current webpage into an org-mode file
 
 * Implemented
@@ -26,12 +26,12 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
  1. Place this script in the =~/.local/share/qutebrowser/userscripts= folder.
  2. Edit the source to point variables =ORG_FILE= and =HEADING_PATH= to the right places
     - The default file+heading is =~/read-later.org+Read Later=
- 3. Add a binding to your Qutebrowser config.py, e.g. I use =config.bind(',b', 'spawn --userscript qute-org read')=
+ 3. Add a binding to your Qutebrowser config.py, e.g. I use =config.bind(',b', 'spawn --userscript qute-capture read')=
 
 * Use
- - To create a new entry: =qute-org write=
- - To jump to an entry: =qute-org read=
- - To delete an entry: =qute-org rm=
+ - To create a new entry: =qute-capture write=
+ - To jump to an entry: =qute-capture read=
+ - To delete an entry: =qute-capture rm=
  - See the source for other settings
 
 * Dependencies

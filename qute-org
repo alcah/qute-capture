@@ -14,7 +14,7 @@ import argparse
 import re
 import time
 
-ORG_FILE = os.path.expanduser("read-later.org")
+ORG_FILE = os.path.expanduser("~/read-later.org")
 HEADING_PATH = "Read Later"
 HEADING_SEPERATOR = '/'
 TIME_FORMAT = "Captured: <%Y-%m-%d %a>"
@@ -81,7 +81,7 @@ def node_select_dmenu(org, rexp):
 
         # ideally we should be matching against the header too
         if rexp:
-            items = [i for i in items if re.match(rexp, i)]
+            items = [i for i in items if re.search(rexp, i)]
 
         selection = dmenu(items, DMENU).split(' ')[0]
         if selection:
