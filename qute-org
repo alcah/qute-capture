@@ -2,32 +2,26 @@
 
 """
 Store the given url in an org-mode file
+Note: This script must be called from qutebrowser
 """
 
 import PyOrgMode as pyorg
 import os.path
-import argparse
 import subprocess
 import shlex
 import sys
+import argparse
 import re
 import time
 
-ORG_FILE = os.path.expanduser("~/read-later.org")
+ORG_FILE = os.path.expanduser("read-later.org")
 HEADING_PATH = "Read Later"
 HEADING_SEPERATOR = '/'
-TIME_FORMAT = "Captured <%Y-%m-%d %a>"
-# was this called by qutebrowser
-QUTE = os.getenv("QUTE_FIFO")
+TIME_FORMAT = "Captured: <%Y-%m-%d %a>"
 DMENU = "dmenu -i -l 15"
-
 
 argparser = argparse.ArgumentParser(description=__doc__)
 argparser.add_argument("mode", nargs='?', choices=["write", "read", "rm"])
-argparser.add_argument("--title", "-t", nargs='?', default=os.getenv("QUTE_TITLE"))
-argparser.add_argument("--content", "-c", nargs='?', default=os.getenv("QUTE_URL"))
-argparser.add_argument("--org-file", "-f", default=ORG_FILE)
-argparser.add_argument("--heading", "-d", default=HEADING_PATH)
 argparser.add_argument("--re", "-r", nargs='?', default="")
 
 def qute_command(command):
@@ -44,13 +38,11 @@ def dmenu(items, invocation):
                              stdout=subprocess.PIPE)
     return process.stdout.decode("UTF-8").strip()
 
-def new_node(heading, level, content=None):
+def new_node(heading, level):
     """Return a new orgnode"""
     node = pyorg.OrgNode.Element()
     node.heading = heading
     node.level = level
-    if content:
-        node.append_clean(content)
     return node
 
 def resolve_heading(org, headings):
@@ -87,7 +79,7 @@ def node_select_dmenu(org, rexp):
                                     e.content[0].strip(),
                                     e.heading.strip()) for e in org.content]
 
-        # ideally we should be matching against the header
+        # ideally we should be matching against the header too
         if rexp:
             items = [i for i in items if re.match(rexp, i)]
 
@@ -101,42 +93,42 @@ def main(args):
     Store given url in an org-mode file
     or interactively retrieve using dmenu
     """
-    if not args.mode:
+    if not args.mode or not os.getenv("QUTE_URL"):
         argparser.print_help()
         return 1
 
     org = pyorg.OrgDataStructure()
+    title = os.getenv("QUTE_TITLE")
+    url = os.getenv("QUTE_URL")
+    content = os.getenv("QUTE_SELECTED_TEXT")
 
     try:
-        org.load_from_file(args.org_file);
+        org.load_from_file(ORG_FILE);
     except FileNotFoundError:
         # If the file doesn't exist we begin with an empty org structure
         pass
 
-    node = resolve_heading(org.root, args.heading);
+    node = resolve_heading(org.root, HEADING_PATH);
 
     if args.mode == "write":
-        newnode = new_node(args.title, node.level + 1, args.content + '\n')
+        newnode = new_node(title, node.level + 1)
+        newnode.append_clean(url + '\n')
         newnode.append_clean(time.strftime(TIME_FORMAT) + '\n')
-        if QUTE:
-            newnode.append_clean(os.getenv("QUTE_SELECTED_TEXT") + '\n')
+        newnode.append_clean(content + '\n')
         node.append_clean(newnode)
-        org.save_to_file(args.org_file)
-        if QUTE:
-            qute_command("message-info \"captured " + args.title + "\"")
+        org.save_to_file(ORG_FILE)
+        qute_command("message-info \"captured " + title + "\"")
 
     elif args.mode == "read":
         selection = node_select_dmenu(node, args.re)
-        if QUTE and selection:
+        if selection:
             qute_command("open -t " + selection.content[0].strip())
-        elif selection:
-            print(selection)
 
     elif args.mode == "rm":
         selection = node_select_dmenu(node, args.re)
-        node.content.remove(selection)
-        org.save_to_file(args.org_file)
-        if QUTE and selection:
+        if selection:
+            node.content.remove(selection)
+            org.save_to_file(ORG_FILE)
             qute_command("message-info \"removed: " + selection.heading + "\"")
 
     return 0
