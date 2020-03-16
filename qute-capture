@@ -5,7 +5,7 @@ Store the given url in an org-mode file
 Note: This script must be called from qutebrowser
 """
 
-import PyOrgMode as pyorg
+from PyOrgMode import PyOrgMode as pyorg
 import os.path
 import subprocess
 import shlex
