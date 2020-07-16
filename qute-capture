@@ -13,6 +13,7 @@ import sys
 import argparse
 import re
 import time
+import tempfile
 
 ORG_FILE = "~/read-later.org"
 HEADING_PATH = "Read Later"
@@ -25,6 +26,7 @@ argparser.add_argument("mode", nargs='?', choices=["write", "read", "rm"])
 argparser.add_argument("--re", "-r", nargs='?', default="")
 argparser.add_argument("--file", "-f", nargs='?', default=ORG_FILE)
 argparser.add_argument("--heading", "-H", nargs='?', default=HEADING_PATH)
+argparser.add_argument("--edit", "-e", action="store_true")
 
 def qute_command(command):
     """send commands to qutebrowser"""
@@ -90,6 +92,37 @@ def node_select_dmenu(org, rexp):
             return org.content[int(selection.split('.')[0])]
     return None
 
+def edit_node(orgnode):
+    """spawn a text editor on the given node and return edited content"""
+    editor = os.getenv("VISUAL") or os.getenv("EDITOR")
+    rnode = orgnode
+    if not editor:
+        return rnode
+    
+    with tempfile.NamedTemporaryFile(delete=False) as f:
+        fname = f.name
+
+    # we need to embed orgnode in a full orgdatastructure before saving it out
+    base = pyorg.OrgDataStructure()
+    base.root.append_clean(orgnode)
+    base.save_to_file(fname)
+    
+    if subprocess.call(["st", "-e", editor, fname]) != 0:
+        os.remove(fname)
+        return orgnode
+    
+    editnode = pyorg.OrgDataStructure()
+    try:
+        editnode.load_from_file(fname);
+    except FileNotFoundError:
+        os.remove(fname)
+        return orgnode
+
+    os.remove(fname)
+    # retrieve element from orgdatastructure
+    return editnode.root.content[0]
+    
+
 def main(args):
     """
     Store given url in an org-mode file
@@ -122,6 +155,8 @@ def main(args):
         # we append a final newline to ensure each element is space separated
         # this may be personal preference
         newnode.append_clean('\n')
+        if args.edit:
+            newnode = edit_node(newnode)
         node.append_clean(newnode)
         org.save_to_file(orgfile)
         qute_command("message-info \"captured " + title + "\"")
