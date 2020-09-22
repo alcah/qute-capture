@@ -17,6 +17,7 @@ import tempfile
 
 ORG_FILE = "~/read-later.org"
 HEADING_PATH = "Read Later"
+EDITOR='xterm -e vi'
 HEADING_SEPERATOR = '/'
 TIME_FORMAT = "Captured: <%Y-%m-%d %a>"
 DMENU = "dmenu -i -l 15"
@@ -26,7 +27,7 @@ argparser.add_argument("mode", nargs='?', choices=["write", "read", "rm"])
 argparser.add_argument("--re", "-r", nargs='?', default="")
 argparser.add_argument("--file", "-f", nargs='?', default=ORG_FILE)
 argparser.add_argument("--heading", "-H", nargs='?', default=HEADING_PATH)
-argparser.add_argument("--edit", "-e", action="store_true")
+argparser.add_argument("--edit", "-e", nargs='?', const=EDITOR, default="")
 
 def qute_command(command):
     """send commands to qutebrowser"""
@@ -92,14 +93,12 @@ def node_select_dmenu(org, rexp):
             return org.content[int(selection.split('.')[0])]
     return None
 
-def edit_node(orgnode):
+def edit_node(orgnode, editor):
     """spawn a text editor on the given node and return edited content"""
-    editor = os.getenv("VISUAL") or os.getenv("EDITOR")
-    rnode = orgnode
     if not editor:
-        return rnode
+        return orgnode
     
-    with tempfile.NamedTemporaryFile(delete=False) as f:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".org") as f:
         fname = f.name
 
     # we need to embed orgnode in a full orgdatastructure before saving it out
@@ -107,7 +106,7 @@ def edit_node(orgnode):
     base.root.append_clean(orgnode)
     base.save_to_file(fname)
     
-    if subprocess.call(["st", "-e", editor, fname]) != 0:
+    if subprocess.call(editor + " " + fname, shell=True) != 0:
         os.remove(fname)
         return orgnode
     
@@ -115,13 +114,11 @@ def edit_node(orgnode):
     try:
         editnode.load_from_file(fname);
     except FileNotFoundError:
-        os.remove(fname)
         return orgnode
 
     os.remove(fname)
     # retrieve element from orgdatastructure
     return editnode.root.content[0]
-    
 
 def main(args):
     """
@@ -156,7 +153,7 @@ def main(args):
         # this may be personal preference
         newnode.append_clean('\n')
         if args.edit:
-            newnode = edit_node(newnode)
+            newnode = edit_node(newnode, args.edit)
         node.append_clean(newnode)
         org.save_to_file(orgfile)
         qute_command("message-info \"captured " + title + "\"")

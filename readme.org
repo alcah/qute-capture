@@ -6,6 +6,7 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
  - Select an existing entry using dmenu and jump to that page
  - Basic regexp filtering -- Display only those entries which contain a URL
  - Collect any selected text and the date visited
+ - Edit the entry in your favourite text editor
 
 * Planned
  - The current version is feature complete, although the design could
@@ -24,14 +25,19 @@ Qutebrowser userscript for filing the current webpage into an org-mode file
 
 * Installation
  1. Place this script in the =~/.local/share/qutebrowser/userscripts= folder.
- 2. Edit the source to point variables =ORG_FILE= and =HEADING_PATH= to the right places
+ 2. Add a binding to your Qutebrowser config.py, e.g. I use =config.bind(',b', 'spawn --userscript qute-capture read -f ~/read-later.org -H Read-Later)= 
+    - Be careful about spaces and other odd characters, if in doubt, wrap it in escaped quotes.
+    - Alternatively, see 3. below.
+ 3. (Optional) To make invocation simpler edit the script to point
+    =ORG_FILE=, =HEADING_PATH=, and =EDITOR= to the right places.
     - The default file+heading is =~/read-later.org+Read Later=
-	- Alternatively, the file and heading can be specified with the -f and -H arguments
-	  eg. =qute-capture -f ~/read-now.org -H read/now= Note the capital H.
- 3. Add a binding to your Qutebrowser config.py, e.g. I use =config.bind(',b', 'spawn --userscript qute-capture read')=
+    - The default editor is vi in xterm.  Probably not what you want as org-user.
 
 * Use
  - To create a new entry: =qute-capture write=
+   + To invoke an editor on the new bookmark before saving use the -e
+     flag. -e takes an option argument which is a shell command to be
+     executed.
  - To jump to an entry: =qute-capture read=
  - To delete an entry: =qute-capture rm=
  - See the source for other settings
